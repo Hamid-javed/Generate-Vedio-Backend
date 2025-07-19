@@ -37,6 +37,13 @@ const orderSchema = new mongoose.Schema({
     },
     fullScript: String
   },
+  letterUpload: {
+    uploadId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Upload'
+    },
+    processedPath: String
+  },
   voiceSettings: {
     voice: {
       type: String,
@@ -44,6 +51,7 @@ const orderSchema = new mongoose.Schema({
     },
     voiceoverPath: String
   },
+  goodbyeMessage: String,
   paymentIntentId: String,
   paymentStatus: {
     type: String,

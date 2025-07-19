@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const Upload = require("../models/Upload");
+const uploadService = require("../services/uploadService");
 require("dotenv").config();
 
 // Configure multer for file uploads
@@ -43,31 +44,44 @@ const upload = multer({
   },
 });
 
-// Upload child photos
+// Upload child photos (1-4 photos maximum)
 router.post("/photos", upload.array("photos", 4), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "No photos uploaded" });
     }
 
-    const photoPromises = req.files.map(async (file) => {
-      const uploadRecord = new Upload({
-        originalName: file.originalname,
-        filename: file.filename,
-        path: file.path,
-        mimetype: file.mimetype,
-        size: file.size,
-        fileType: "photo",
-      });
-      await uploadRecord.save();
-      return uploadRecord;
-    });
+    if (req.files.length > 4) {
+      return res.status(400).json({ error: "Maximum 4 photos allowed" });
+    }
 
-    const processedPhotos = await Promise.all(photoPromises);
+    const processedPhotos = await uploadService.processPhotos(req.files);
+
+    const photoRecords = await Promise.all(
+      processedPhotos.map(async (photoData) => {
+        const uploadRecord = new Upload({
+          originalName: photoData.originalName,
+          filename: photoData.filename || photoData.id,
+          path: photoData.processedPath,
+          mimetype: photoData.mimetype,
+          size: photoData.size,
+          fileType: "photo",
+          metadata: photoData.metadata,
+          processed: true,
+          processedPath: photoData.processedPath
+        });
+        await uploadRecord.save();
+        return {
+          ...uploadRecord.toObject(),
+          ...photoData
+        };
+      })
+    );
 
     res.json({
       success: true,
-      photos: processedPhotos,
+      photos: photoRecords,
+      message: `${photoRecords.length} photo(s) uploaded successfully`
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -94,6 +108,80 @@ router.post("/letter", upload.single("letter"), async (req, res) => {
     res.json({
       success: true,
       letter: uploadRecord,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Edit photo with crop/zoom functionality
+router.post("/photos/:photoId/edit", async (req, res) => {
+  try {
+    const { photoId } = req.params;
+    const { crop, zoom, rotation, brightness, contrast } = req.body;
+
+    // Find the photo record
+    const photoRecord = await Upload.findById(photoId);
+    if (!photoRecord || photoRecord.fileType !== 'photo') {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+
+    // Apply edits using uploadService
+    const editedPhoto = await uploadService.editPhoto(photoRecord._id, {
+      crop,
+      zoom,
+      rotation,
+      brightness,
+      contrast
+    });
+
+    // Update photo record with edit settings
+    photoRecord.editSettings = {
+      crop: crop || photoRecord.editSettings?.crop,
+      zoom: zoom || photoRecord.editSettings?.zoom || 1,
+      rotation: rotation || photoRecord.editSettings?.rotation || 0,
+      brightness: brightness || photoRecord.editSettings?.brightness || 1,
+      contrast: contrast || photoRecord.editSettings?.contrast || 1
+    };
+    
+    if (editedPhoto.path) {
+      photoRecord.processedPath = editedPhoto.path;
+    }
+    
+    await photoRecord.save();
+
+    res.json({
+      success: true,
+      photo: {
+        ...photoRecord.toObject(),
+        editedPath: editedPhoto.path
+      },
+      message: "Photo edited successfully"
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get photo preview with current edits
+router.get("/photos/:photoId/preview", async (req, res) => {
+  try {
+    const { photoId } = req.params;
+    const photoRecord = await Upload.findById(photoId);
+    
+    if (!photoRecord || photoRecord.fileType !== 'photo') {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+
+    res.json({
+      success: true,
+      photo: {
+        id: photoRecord._id,
+        originalPath: photoRecord.path,
+        processedPath: photoRecord.processedPath,
+        editSettings: photoRecord.editSettings,
+        metadata: photoRecord.metadata
+      }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

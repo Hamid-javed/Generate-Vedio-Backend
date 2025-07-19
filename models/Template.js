@@ -14,10 +14,6 @@ const templateSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  videoUrl: {
-    type: String,
-    required: true
-  },
   thumbnail: {
     type: String,
     required: true
@@ -26,34 +22,43 @@ const templateSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  category: {
-    type: String,
+  price: {
+    type: Number,
     required: true,
-    enum: ['christmas', 'birthday', 'general']
+    default: 19.99
   },
-  isPremium: {
-    type: Boolean,
-    default: false
-  },
-  tags: [{
-    type: String
+  // Pre-rendered video clips for this template
+  clips: [{
+    id: String,
+    name: String,
+    file: String, // Path to the video file
+    duration: Number,
+    type: {
+      type: String,
+      enum: ['intro', 'name_mention', 'green_screen_book', 'custom_message', 'goodbye']
+    },
+    hasGreenScreen: {
+      type: Boolean,
+      default: false
+    },
+    // Position for green screen replacement
+    greenScreenArea: {
+      x: Number,
+      y: Number, 
+      width: Number,
+      height: Number
+    }
   }],
-  photoSlots: [{
+  // Text overlay positions for child's name
+  nameOverlay: {
     x: Number,
     y: Number,
-    width: Number,
-    height: Number,
-    rotation: { type: Number, default: 0 }
-  }],
-  textSlots: [{
-    x: Number,
-    y: Number,
-    width: Number,
-    height: Number,
     fontSize: Number,
-    color: String,
-    fontFamily: String
-  }],
+    fontColor: String,
+    fontFamily: String,
+    startTime: Number, // seconds
+    endTime: Number    // seconds
+  },
   isActive: {
     type: Boolean,
     default: true

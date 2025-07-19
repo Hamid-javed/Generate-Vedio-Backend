@@ -78,64 +78,199 @@ class TemplateService {
 
       const defaultTemplates = [
         {
-          name: 'Classic Santa',
-          description: 'Traditional Santa video with workshop background',
+          name: 'Classic Santa Workshop',
+          description: 'Traditional Santa video with cozy workshop background and magical atmosphere',
           previewUrl: '/assets/templates/classic-santa-preview.mp4',
-          videoUrl: '/assets/templates/classic-santa.mp4',
           thumbnail: '/assets/templates/classic-santa-thumb.jpg',
           duration: 120,
-          category: 'christmas',
-          isPremium: false,
-          tags: ['classic', 'traditional', 'workshop'],
-          photoSlots: [
-            { x: 100, y: 200, width: 300, height: 400, rotation: 0 }
-          ],
-          textSlots: [
-            { 
-              x: 50, y: 50, width: 500, height: 100, 
-              fontSize: 48, color: 'white', fontFamily: 'Arial'
+          price: 19.99,
+          clips: [
+            {
+              id: 'intro',
+              name: 'Workshop Introduction',
+              file: '/assets/video-clips/classic-santa-intro.mp4',
+              duration: 15,
+              type: 'intro',
+              hasGreenScreen: false
+            },
+            {
+              id: 'name_mention',
+              name: 'Personal Name Mention',
+              file: '/assets/video-clips/classic-santa-name.mp4',
+              duration: 10,
+              type: 'name_mention',
+              hasGreenScreen: false
+            },
+            {
+              id: 'green_screen_book',
+              name: 'Magic Book with Child Photo',
+              file: '/assets/video-clips/classic-santa-book-greenscreen.mp4',
+              duration: 20,
+              type: 'green_screen_book',
+              hasGreenScreen: true,
+              greenScreenArea: {
+                x: 300,
+                y: 200,
+                width: 400,
+                height: 300
+              }
+            },
+            {
+              id: 'custom_message',
+              name: 'Custom Script Delivery',
+              file: '/assets/video-clips/classic-santa-message.mp4',
+              duration: 60,
+              type: 'custom_message',
+              hasGreenScreen: false
+            },
+            {
+              id: 'goodbye',
+              name: 'Farewell Message',
+              file: '/assets/video-clips/classic-santa-goodbye.mp4',
+              duration: 15,
+              type: 'goodbye',
+              hasGreenScreen: false
             }
-          ]
+          ],
+          nameOverlay: {
+            x: 100,
+            y: 50,
+            fontSize: 48,
+            fontColor: '#FFD700',
+            fontFamily: 'Arial',
+            startTime: 8,
+            endTime: 12
+          }
         },
         {
           name: 'North Pole Adventure',
-          description: 'Santa takes you on a tour of the North Pole',
+          description: 'Santa takes you on an exciting tour of the magical North Pole',
           previewUrl: '/assets/templates/north-pole-preview.mp4',
-          videoUrl: '/assets/templates/north-pole.mp4',
           thumbnail: '/assets/templates/north-pole-thumb.jpg',
           duration: 150,
-          category: 'christmas',
-          isPremium: false,
-          tags: ['adventure', 'north-pole', 'tour'],
-          photoSlots: [
-            { x: 150, y: 250, width: 350, height: 450, rotation: 0 }
-          ],
-          textSlots: [
-            { 
-              x: 75, y: 75, width: 550, height: 120, 
-              fontSize: 52, color: '#FFD700', fontFamily: 'Arial'
+          price: 24.99,
+          clips: [
+            {
+              id: 'intro',
+              name: 'North Pole Entrance',
+              file: '/assets/video-clips/north-pole-intro.mp4',
+              duration: 20,
+              type: 'intro',
+              hasGreenScreen: false
+            },
+            {
+              id: 'name_mention',
+              name: 'Personal Greeting',
+              file: '/assets/video-clips/north-pole-name.mp4',
+              duration: 10,
+              type: 'name_mention',
+              hasGreenScreen: false
+            },
+            {
+              id: 'green_screen_book',
+              name: 'Magical Photo Book',
+              file: '/assets/video-clips/north-pole-book-greenscreen.mp4',
+              duration: 25,
+              type: 'green_screen_book',
+              hasGreenScreen: true,
+              greenScreenArea: {
+                x: 250,
+                y: 150,
+                width: 450,
+                height: 350
+              }
+            },
+            {
+              id: 'custom_message',
+              name: 'Adventure Story',
+              file: '/assets/video-clips/north-pole-message.mp4',
+              duration: 80,
+              type: 'custom_message',
+              hasGreenScreen: false
+            },
+            {
+              id: 'goodbye',
+              name: 'Adventure Conclusion',
+              file: '/assets/video-clips/north-pole-goodbye.mp4',
+              duration: 15,
+              type: 'goodbye',
+              hasGreenScreen: false
             }
-          ]
+          ],
+          nameOverlay: {
+            x: 120,
+            y: 80,
+            fontSize: 52,
+            fontColor: '#87CEEB',
+            fontFamily: 'Arial',
+            startTime: 12,
+            endTime: 18
+          }
         },
         {
-          name: 'Magical Christmas',
-          description: 'Enchanted Christmas experience with special effects',
+          name: 'Magical Christmas Wonder',
+          description: 'Enchanted Christmas experience with spectacular special effects and magic',
           previewUrl: '/assets/templates/magical-preview.mp4',
-          videoUrl: '/assets/templates/magical.mp4',
           thumbnail: '/assets/templates/magical-thumb.jpg',
           duration: 180,
-          category: 'christmas',
-          isPremium: true,
-          tags: ['magical', 'enchanted', 'special-effects'],
-          photoSlots: [
-            { x: 200, y: 300, width: 400, height: 500, rotation: 0 }
-          ],
-          textSlots: [
-            { 
-              x: 100, y: 100, width: 600, height: 140, 
-              fontSize: 56, color: '#FF6B6B', fontFamily: 'Arial'
+          price: 29.99,
+          clips: [
+            {
+              id: 'intro',
+              name: 'Magical Christmas Opening',
+              file: '/assets/video-clips/magical-intro.mp4',
+              duration: 25,
+              type: 'intro',
+              hasGreenScreen: false
+            },
+            {
+              id: 'name_mention',
+              name: 'Enchanted Name Reveal',
+              file: '/assets/video-clips/magical-name.mp4',
+              duration: 12,
+              type: 'name_mention',
+              hasGreenScreen: false
+            },
+            {
+              id: 'green_screen_book',
+              name: 'Magical Photo Transformation',
+              file: '/assets/video-clips/magical-book-greenscreen.mp4',
+              duration: 30,
+              type: 'green_screen_book',
+              hasGreenScreen: true,
+              greenScreenArea: {
+                x: 200,
+                y: 100,
+                width: 500,
+                height: 400
+              }
+            },
+            {
+              id: 'custom_message',
+              name: 'Magical Story with Effects',
+              file: '/assets/video-clips/magical-message.mp4',
+              duration: 90,
+              type: 'custom_message',
+              hasGreenScreen: false
+            },
+            {
+              id: 'goodbye',
+              name: 'Magical Farewell',
+              file: '/assets/video-clips/magical-goodbye.mp4',
+              duration: 23,
+              type: 'goodbye',
+              hasGreenScreen: false
             }
-          ]
+          ],
+          nameOverlay: {
+            x: 150,
+            y: 60,
+            fontSize: 56,
+            fontColor: '#FF69B4',
+            fontFamily: 'Arial',
+            startTime: 15,
+            endTime: 22
+          }
         }
       ];
 

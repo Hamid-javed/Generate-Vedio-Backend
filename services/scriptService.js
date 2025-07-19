@@ -23,14 +23,14 @@ class ScriptService {
 
   async createCustomScript({ segmentIds, goodbyeMessageId, childName, userId }) {
     try {
-      const segments = await ScriptSegment.find({ 
-        id: { $in: segmentIds }, 
-        isActive: true 
+      const segments = await ScriptSegment.find({
+        id: { $in: segmentIds },
+        isActive: true
       });
-      
-      const goodbyeMessage = await GoodbyeMessage.findOne({ 
-        id: goodbyeMessageId, 
-        isActive: true 
+
+      const goodbyeMessage = await GoodbyeMessage.findOne({
+        id: goodbyeMessageId,
+        isActive: true
       });
 
       if (segments.length === 0) {

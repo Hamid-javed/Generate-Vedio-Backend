@@ -97,7 +97,37 @@ class VideoService {
           photos.forEach((photo, index) => {
             if (photo.processedPath) {
               const photoPath = path.join(__dirname, '..', photo.processedPath);
-              command = command.input(photoPath);
+command = command.input(photoPath);
+
+// Apply zoom and crop, if specified
+if (photo.editSettings) {
+  const { crop, zoom, rotation, brightness, contrast } = photo.editSettings;
+  let photoInput = `scale=iw*${zoom}:ih*${zoom}`;
+
+  // Apply cropping
+  if (crop && crop.width && crop.height) {
+    photoInput += `,crop=${crop.width}:${crop.height}:${crop.x}:${crop.y}`;
+  }
+  
+  // Apply rotation
+  if (rotation) {
+    photoInput += `,rotate=${rotation}`;
+  }
+
+  // Apply brightness
+  if (brightness) {
+    photoInput += `,eq=brightness=${brightness}`;
+  }
+
+  // Apply contrast
+  if (contrast) {
+    photoInput += `,eq=contrast=${contrast}`;
+  }
+
+  filterComplex.push(`[${inputIndex}:v]${photoInput}[photo${index}]`);
+} else {
+  filterComplex.push(`[${inputIndex}:v]scale=iw"iw*zoom"[photo${index}]`);
+}
             }
           });
         }
@@ -124,9 +154,9 @@ class VideoService {
           });
         }
 
-        // Add text overlay for child's name
-        const textOverlay = `${videoStream}drawtext=text='${childName}':fontfile=Arial:fontsize=48:fontcolor=white:x=(w-text_w)/2:y=h-100:enable='between(t,5,10)'[final]`;
-        filterComplex.push(textOverlay);
+// Add text overlay for child's name
+const nameOverlayDetails = template.nameOverlay;
+filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf:fontsize=${nameOverlayDetails.fontSize}:fontcolor=${nameOverlayDetails.fontColor}:x=${nameOverlayDetails.x}:y=${nameOverlayDetails.y}:enable='between(t,${nameOverlayDetails.startTime},${nameOverlayDetails.endTime})'`);
 
         command
           .complexFilter(filterComplex)

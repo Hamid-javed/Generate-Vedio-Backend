@@ -37,6 +37,37 @@ const uploadSchema = new mongoose.Schema({
     duration: Number, // For videos/audio
     format: String
   },
+  // Photo editing information
+  editSettings: {
+    crop: {
+      x: { type: Number, default: 0 },
+      y: { type: Number, default: 0 },
+      width: Number,
+      height: Number
+    },
+    zoom: {
+      type: Number,
+      default: 1,
+      min: 0.5,
+      max: 3
+    },
+    rotation: {
+      type: Number,
+      default: 0
+    },
+    brightness: {
+      type: Number,
+      default: 1,
+      min: 0.5,
+      max: 2
+    },
+    contrast: {
+      type: Number,
+      default: 1,
+      min: 0.5,
+      max: 2
+    }
+  },
   processed: {
     type: Boolean,
     default: false

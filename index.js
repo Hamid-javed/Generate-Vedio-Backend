@@ -42,6 +42,7 @@ const scriptRoutes = require('./routes/scripts');
 const paymentRoutes = require('./routes/payment');
 const videoRoutes = require('./routes/video');
 const orderRoutes = require('./routes/orders');
+const featuresRoutes = require('./routes/features');
 
 // Import services for initialization
 const templateService = require('./services/templateService');
@@ -55,6 +56,7 @@ app.use('/api/scripts', scriptRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/features', featuresRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
