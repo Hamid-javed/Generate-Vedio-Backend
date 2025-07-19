@@ -1,0 +1,26 @@
+{
+  "name": "santa-video-nodejs-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "latest",
+    "dotenv": "latest",
+    "cors": "latest",
+    "mongoose": "latest",
+    "multer": "latest",
+    "sharp": "latest",
+    "uuid": "latest",
+    "joi": "latest",
+    "stripe": "latest",
+    "fluent-ffmpeg": "latest",
+    "nodemailer": "latest",
+    "axios": "latest"
+  },
+  "devDependencies": {
+    "nodemon": "latest"
+  }
+}
