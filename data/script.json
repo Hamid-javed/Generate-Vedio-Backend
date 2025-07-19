@@ -1,0 +1,79 @@
+{
+  "segments": [
+    {
+      "id": "good-behavior",
+      "title": "Good Behavior Praise",
+      "text": "I've been watching you all year, {name}, and I'm so proud of how good you've been! You've been kind to others, helped your family, and tried your best in everything you do.",
+      "duration": 15,
+      "category": "praise"
+    },
+    {
+      "id": "christmas-spirit",
+      "title": "Christmas Spirit",
+      "text": "The Christmas spirit shines so brightly in you, {name}! Your kindness and joy make the whole world a little more magical. That's exactly what Christmas is all about!",
+      "duration": 12,
+      "category": "inspiration"
+    },
+    {
+      "id": "special-gift",
+      "title": "Special Gift Mention",
+      "text": "I have something very special planned for you this Christmas, {name}. The elves and I have been working extra hard to make sure it's perfect just for you!",
+      "duration": 10,
+      "category": "gifts"
+    },
+    {
+      "id": "keep-believing",
+      "title": "Keep Believing",
+      "text": "Remember, {name}, the magic of Christmas lives in your heart. Keep believing, keep being kind, and keep spreading joy wherever you go!",
+      "duration": 13,
+      "category": "inspiration"
+    },
+    {
+      "id": "family-love",
+      "title": "Family Love",
+      "text": "I can see how much love you have for your family, {name}, and how much they love you too. That love is the greatest gift of all!",
+      "duration": 11,
+      "category": "family"
+    },
+    {
+      "id": "school-achievement",
+      "title": "School Achievement",
+      "text": "I heard from the elves that you've been working so hard at school, {name}! Learning new things and being curious about the world makes Santa very happy!",
+      "duration": 12,
+      "category": "achievement"
+    },
+    {
+      "id": "helping-others",
+      "title": "Helping Others",
+      "text": "What makes me most proud, {name}, is how you help others and share your toys. That generous heart of yours is what makes Christmas truly special!",
+      "duration": 14,
+      "category": "kindness"
+    }
+  ],
+  "goodbyeMessages": [
+    {
+      "id": "classic-goodbye",
+      "title": "Classic Santa Goodbye",
+      "text": "Ho ho ho! Merry Christmas, {name}! Be good, and I'll see you next year!",
+      "duration": 8
+    },
+    {
+      "id": "magical-goodbye",
+      "title": "Magical Goodbye",
+      "text": "The magic of Christmas will always be with you, {name}. Until we meet again, keep the Christmas spirit alive in your heart! Ho ho ho!",
+      "duration": 12
+    },
+    {
+      "id": "adventure-goodbye",
+      "title": "Adventure Goodbye",
+      "text": "What an amazing adventure we've had together, {name}! Remember, every day can be as magical as Christmas if you believe! Ho ho ho!",
+      "duration": 10
+    },
+    {
+      "id": "warm-goodbye",
+      "title": "Warm Goodbye",
+      "text": "Give your family a big hug from Santa, {name}! I'll be thinking of you on Christmas morning. Ho ho ho! Merry Christmas!",
+      "duration": 9
+    }
+  ]
+}
