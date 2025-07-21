@@ -69,7 +69,7 @@ const voiceController = {
 
         // Save audio file
         const audioId = uuidv4();
-        const audioPath = path.join(__dirname, '../uploads/audio', `${audioId}.mp3`);
+        const audioPath = path.join(__dirname, '../uploads/audio', `${name}.mp3`);
 
         // Ensure audio directory exists
         const audioDir = path.dirname(audioPath);

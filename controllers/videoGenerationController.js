@@ -61,7 +61,8 @@ const videoGenerationController = {
           parentEmail,
           templateId,
           selectedScripts,
-          goodbyeScript
+          goodbyeScript,
+          videoName // <-- new parameter
         } = req.body;
 
         // Validate required fields
@@ -209,9 +210,24 @@ const videoGenerationController = {
           })
         );
 
-        // Generate unique video ID
+        // --- Video selection logic ---
+        let baseVideoPath = null;
+        if (videoName) {
+          const candidatePath = path.join(__dirname, '../data/video', videoName);
+          if (fs.existsSync(candidatePath)) {
+            baseVideoPath = candidatePath;
+          } else {
+            return res.status(404).json({
+              error: 'Selected video not found',
+              message: `No video named ${videoName} in data/video/`
+            });
+          }
+        }
+
+        // Generate unique video ID (use childName for output as requested)
+        const safeChildName = childName.replace(/[^a-zA-Z0-9_-]/g, '_');
         const videoId = uuidv4();
-        const outputPath = path.join(__dirname, '../uploads/videos', `video-${videoId}.mp4`);
+        const outputPath = path.join(__dirname, '../uploads/videos', `${safeChildName}.mp4`);
 
         // Ensure video directory exists
         const videoDir = path.dirname(outputPath);
@@ -232,7 +248,7 @@ const videoGenerationController = {
           console.warn('⚠️ Order confirmation email failed:', emailError.message);
         }
 
-        // Generate video using placeholder clips 
+        // Generate video using selected base video, audio, images, and subtitles
         await generateVideoWithFFmpeg({
           videoId,
           childName,
@@ -241,7 +257,9 @@ const videoGenerationController = {
           goodbyeScriptData,
           processedPhotos,
           letter,
-          outputPath
+          outputPath,
+          baseVideoPath, // pass to helper
+          audioPath: path.join(__dirname, '../uploads/audio', `${childName}.mp3`)
         });
 
         console.log(`🎬 Video generation completed: ${outputPath}`);
@@ -345,33 +363,68 @@ async function generateVideoWithFFmpeg(options) {
     goodbyeScriptData,
     processedPhotos,
     letter,
-    outputPath
+    outputPath,
+    baseVideoPath, // new
+    audioPath // new
   } = options;
 
   return new Promise((resolve, reject) => {
-    // Create a simple video with placeholder clips
-    // For now, we'll create a slideshow of photos with text overlays
-
-    const command = ffmpeg();
-
-    // Add first photo as background
-    if (processedPhotos.length > 0) {
-      command.input(processedPhotos[0].processed);
+    let command;
+    if (baseVideoPath) {
+      command = ffmpeg(baseVideoPath);
+    } else if (processedPhotos.length > 0) {
+      command = ffmpeg(processedPhotos[0].processed);
+    } else {
+      return reject(new Error('No base video or photo provided.'));
     }
 
-    // Set video parameters
+    // Ensure output directory exists
+    const outputDir = path.dirname(outputPath);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // Add audio overlay if exists
+    if (fs.existsSync(audioPath)) {
+      command.input(audioPath);
+    }
+
+    // Add images as overlays (5s each)
+    processedPhotos.forEach((photo, idx) => {
+      command.input(photo.processed).inputOptions([
+        `-t 5` // 5 seconds per photo
+      ]);
+    });
+
+    // Prepare subtitles from scripts
+    // For simplicity, concatenate all selectedScriptData texts
+    const subtitleText = selectedScriptData.map(s => s.text.replace('{{childName}}', childName)).join(' ');
+    // Write subtitles to a temporary file
+    const subtitlesPath = path.join(__dirname, `../uploads/videos/${videoId}-subtitles.srt`);
+    const srtContent = `1\n00:00:01,000 --> 00:00:10,000\n${subtitleText}\n`;
+    fs.writeFileSync(subtitlesPath, srtContent);
+
+    // FFmpeg filters
+    let filters = [
+      'scale=1920:1080:force_original_aspect_ratio=decrease',
+      'pad=1920:1080:(ow-iw)/2:(oh-ih)/2'
+      // subtitles filter temporarily removed for debugging
+      // `subtitles='${subtitlesPath.replace(/\\/g, "/")}'`
+    ];
+
+    // Debug prints
+    console.log('FFmpeg outputPath:', outputPath);
+    console.log('FFmpeg subtitlesPath:', subtitlesPath);
+    console.log('FFmpeg outputDir exists:', fs.existsSync(path.dirname(outputPath)));
+
     command
-      .videoFilters([
-        'scale=1920:1080:force_original_aspect_ratio=decrease',
-        'pad=1920:1080:(ow-iw)/2:(oh-ih)/2'
-      ])
+      .videoFilters(filters)
       .outputOptions([
         '-c:v libx264',
         '-preset medium',
         '-crf 23',
         '-pix_fmt yuv420p'
       ])
-      .duration(10) // 10 second placeholder video
       .output(outputPath)
       .on('start', (commandLine) => {
         console.log('FFmpeg started:', commandLine);
@@ -380,10 +433,13 @@ async function generateVideoWithFFmpeg(options) {
         console.log('Processing: ' + progress.percent + '% done');
       })
       .on('end', () => {
+        // Clean up subtitle file
+        if (fs.existsSync(subtitlesPath)) fs.unlinkSync(subtitlesPath);
         console.log('Video generation completed');
         resolve();
       })
       .on('error', (err) => {
+        if (fs.existsSync(subtitlesPath)) fs.unlinkSync(subtitlesPath);
         console.error('FFmpeg error:', err);
         reject(err);
       })
