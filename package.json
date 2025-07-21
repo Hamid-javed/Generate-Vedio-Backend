@@ -7,18 +7,21 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "express": "latest",
-    "dotenv": "latest",
+    "axios": "latest",
     "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "fluent-ffmpeg": "latest",
+    "joi": "latest",
     "mongoose": "latest",
     "multer": "latest",
-    "sharp": "latest",
-    "uuid": "latest",
-    "joi": "latest",
-    "stripe": "latest",
-    "fluent-ffmpeg": "latest",
+    "netopia-card": "^2.1.2",
     "nodemailer": "latest",
-    "axios": "latest"
+    "sharp": "latest",
+    "stripe": "latest",
+    "uuid": "latest",
+    "aws-sdk": "latest",
+    "cloudinary": "latest"
   },
   "devDependencies": {
     "nodemon": "latest"

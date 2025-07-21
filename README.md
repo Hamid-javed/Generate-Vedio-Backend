@@ -1,3 +1,176 @@
+# 🎅 Santa Video Generator API
+
+A streamlined Node.js backend for generating personalized Santa videos with ElevenLabs voice synthesis, FFmpeg video processing, and Netopia payment integration.
+
+## 🚀 Features
+
+- **Voice Generation**: Generate personalized Santa greetings using ElevenLabs API
+- **Template System**: Load video templates from JSON configuration
+- **Script Management**: Predefined Santa dialogue options with customization
+- **Video Generation**: Single endpoint to collect all user data and generate videos
+- **Payment Integration**: Netopia payment processing
+- **File Upload**: Handle photos (1-4) and optional Santa letters
+
+## 📋 API Endpoints
+
+### Voice Generation
+- `POST /api/voice/generate-name` - Generate voice for child's name using ElevenLabs
+
+### Templates
+- `GET /api/templates` - Get all available video templates
+- `GET /api/templates/:templateId` - Get specific template details
+- `GET /api/templates/search` - Filter templates with query parameters
+- `GET /api/templates/stats` - Get template statistics
+
+### Scripts
+- `GET /api/scripts` - Get all available script segments
+- `GET /api/scripts/category/:category` - Get scripts by category
+- `GET /api/scripts/categories` - Get available categories
+
+### Video Generation (Main Endpoint)
+- `POST /api/video/create` - Create personalized video with all user data
+
+### Payment
+- `POST /api/payment/create` - Create Netopia payment request
+- `POST /api/payment/notification` - Handle payment notifications
+
+### Health Check
+- `GET /health` - Server health status
+
+## 🛠 Setup & Installation
+
+### Prerequisites
+- Node.js (v16+)
+- FFmpeg installed and accessible
+- ElevenLabs API key
+- Netopia payment credentials
+
+### Installation
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Copy environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+4. Configure your `.env` file with:
+   - ElevenLabs API key and voice ID
+   - Netopia payment credentials
+   - Other configuration options
+
+5. Start the server:
+   ```bash
+   npm start
+   # or for development
+   npm run dev
+   ```
+
+## 📝 API Usage Examples
+
+### 1. Generate Voice for Name
+```javascript
+POST /api/voice/generate-name
+Content-Type: application/json
+
+{
+  "name": "Emily"
+}
+
+// Response:
+{
+  "success": true,
+  "audioUrl": "/uploads/audio/uuid.mp3",
+  "name": "Emily",
+  "text": "Ho ho ho! Hello Emily!",
+  "audioId": "uuid"
+}
+```
+
+### 2. Get Available Templates
+```javascript
+GET /api/templates
+
+// Response:
+{
+  "success": true,
+  "count": 3,
+  "templates": [
+    {
+      "id": "classic-santa",
+      "name": "Classic Santa",
+      "description": "Traditional Santa video with workshop background",
+      "price": 19.99,
+      "duration": 120,
+      "clips": [...]
+    }
+  ]
+}
+```
+
+### 3. Get Script Categories
+```javascript
+GET /api/scripts/categories
+
+// Response:
+{
+  "success": true,
+  "categories": ["Praise", "Achievement", "Kindness", "Gifts", "Family", "Inspiration", "Goodbye"]
+}
+```
+
+### 4. Create Personalized Video (Main Endpoint)
+```javascript
+POST /api/video/create
+Content-Type: multipart/form-data
+
+// Form Data:
+childName: "Emily"
+parentEmail: "parent@example.com"  // NEW: Required for sending video link
+templateId: "classic-santa"
+selectedScripts: ["praise-1", "achievement-1", "gifts-1"]
+goodbyeScript: "goodbye-1"
+photos: [file1, file2, file3] // 1-4 image files
+letter: [file] // Optional PDF or image
+
+// Response:
+{
+  "success": true,
+  "message": "Video generated and sent to email successfully!",
+  "data": {
+    "videoId": "uuid",
+    "videoUrl": "https://cloud-storage-url/video.mp4", // Cloud storage URL
+    "childName": "Emily",
+    "parentEmail": "parent@example.com",
+    "template": { "id": "classic-santa", "name": "Classic Santa" },
+    "scripts": [...],
+    "photos": 3,
+    "hasLetter": true,
+    "emailSent": true,        // NEW: Email sent status
+    "cloudStored": true,      // NEW: Cloud storage status
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### 5. Create Payment
+```javascript
+POST /api/payment/create
+Content-Type: application/json
+
+{
+  "amount": 19.99,
+  "orderId": "order_uuid"
+}
+
+// Response:
+{
+  "success": true,
+  "paymentUrl": "https://netopia.payment.url"
+}
+```
+
 # Santa Video Backend - Node.js
 
 A complete backend system for generating personalized Santa videos for children. This application allows users to create custom Santa videos by uploading photos, selecting script segments, and processing payments.

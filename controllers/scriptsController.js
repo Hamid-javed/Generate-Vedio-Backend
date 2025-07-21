@@ -1,23 +1,96 @@
-const scriptService = require("../services/scriptService");
+const fs = require('fs');
+const path = require('path');
 
 const scriptsController = {
-  // Get all available script segments
-  getSegments: async (req, res) => {
+  // Get all available script segments from JSON file
+  getAll: async (req, res) => {
     try {
-      const segments = await scriptService.getAllSegments();
-      res.json(segments);
+      const scriptsPath = path.join(__dirname, '../data/scripts.json');
+      
+      if (!fs.existsSync(scriptsPath)) {
+        return res.status(404).json({ 
+          error: "Scripts file not found",
+          message: "The scripts.json file is missing from the data directory" 
+        });
+      }
+
+      const scriptsData = fs.readFileSync(scriptsPath, 'utf8');
+      const scripts = JSON.parse(scriptsData);
+      
+      res.json({
+        success: true,
+        count: scripts.length,
+        scripts: scripts
+      });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error('Error reading scripts from JSON:', error);
+      res.status(500).json({ 
+        error: error.message,
+        message: "Failed to load scripts from JSON file"
+      });
     }
   },
 
-  // Get goodbye messages
-  getGoodbyeMessages: async (req, res) => {
+  // Get scripts by category
+  getByCategory: async (req, res) => {
     try {
-      const messages = await scriptService.getGoodbyeMessages();
-      res.json(messages);
+      const { category } = req.params;
+      const scriptsPath = path.join(__dirname, '../data/scripts.json');
+      
+      if (!fs.existsSync(scriptsPath)) {
+        return res.status(404).json({ 
+          error: "Scripts file not found" 
+        });
+      }
+
+      const scriptsData = fs.readFileSync(scriptsPath, 'utf8');
+      const scripts = JSON.parse(scriptsData);
+      
+      const filteredScripts = scripts.filter(script => 
+        script.category.toLowerCase() === category.toLowerCase()
+      );
+      
+      res.json({
+        success: true,
+        category: category,
+        count: filteredScripts.length,
+        scripts: filteredScripts
+      });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error('Error filtering scripts by category:', error);
+      res.status(500).json({ 
+        error: error.message,
+        message: "Failed to filter scripts by category"
+      });
+    }
+  },
+
+  // Get available categories
+  getCategories: async (req, res) => {
+    try {
+      const scriptsPath = path.join(__dirname, '../data/scripts.json');
+      
+      if (!fs.existsSync(scriptsPath)) {
+        return res.status(404).json({ 
+          error: "Scripts file not found" 
+        });
+      }
+
+      const scriptsData = fs.readFileSync(scriptsPath, 'utf8');
+      const scripts = JSON.parse(scriptsData);
+      
+      const categories = [...new Set(scripts.map(script => script.category))];
+      
+      res.json({
+        success: true,
+        categories: categories
+      });
+    } catch (error) {
+      console.error('Error getting script categories:', error);
+      res.status(500).json({ 
+        error: error.message,
+        message: "Failed to get script categories"
+      });
     }
   },
 

@@ -1,104 +1,50 @@
-const paymentService = require("../services/paymentService");
-const videoService = require("../services/videoService");
+const { Netopia } = require('netopia-card');
+if (!process.env.NETOPIA_API_KEY) {
+  throw new Error('Netopia API key is required');
+}
+const netopia = new Netopia({
+  apiKey: process.env.NETOPIA_API_KEY,
+  sandbox: true, // Set to false in production
+});
 
 const paymentController = {
-  // Create payment intent
-  createIntent: async (req, res) => {
+  // Create payment request
+  createPayment: async (req, res) => {
     try {
-      const { amount, currency = "usd", orderData } = req.body;
-
-      const paymentIntent = await paymentService.createPaymentIntent({
-        amount,
-        currency,
-        metadata: {
-          orderId: orderData.orderId,
-          templateId: orderData.templateId,
-          childName: orderData.childName,
-        },
-        orderId: orderData.orderId
-      });
-
-      res.json({
-        success: true,
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-      });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  },
-
-  // Handle successful payment webhook
-  webhook: async (req, res) => {
-    try {
-      const sig = req.headers["stripe-signature"];
-      const event = paymentService.constructWebhookEvent(req.body, sig);
-
-      if (event.type === "payment_intent.succeeded") {
-        const paymentIntent = event.data.object;
-
-        // Update order status
-        const order = await paymentService.handleSuccessfulPayment(paymentIntent.id);
-
-        // Trigger video generation
-        await videoService.generateVideo({
-          orderId: paymentIntent.metadata.orderId,
-          paymentIntentId: paymentIntent.id,
-        });
+      const { amount, orderId } = req.body;
+      if (!amount || !orderId) {
+        return res.status(400).json({ error: "Amount and Order ID are required" });
       }
 
-      res.json({ received: true });
-    } catch (error) {
-      console.error("Webhook error:", error);
-      res.status(400).json({ error: error.message });
-    }
-  },
-
-  // Check payment status
-  getStatus: async (req, res) => {
-    try {
-      const { paymentIntentId } = req.params;
-      const status = await paymentService.getPaymentStatus(paymentIntentId);
+      const paymentRequest = await netopia.createTransaction({
+        amount,
+        orderId,
+        currency: 'RON',
+        description: 'Santa Video Order',
+      });
 
       res.json({
         success: true,
-        status,
+        paymentUrl: paymentRequest.paymentUrl
       });
     } catch (error) {
+      console.error('Netopia error:', error);
       res.status(500).json({ error: error.message });
     }
   },
 
-  // Create customer
-  createCustomer: async (req, res) => {
+  // Handle successful payment notification (webhook)
+  handleNotification: async (req, res) => {
     try {
-      const { email, name, metadata } = req.body;
-      const customer = await paymentService.createCustomer({
-        email,
-        name,
-        metadata
-      });
-
-      res.json({
-        success: true,
-        customer,
-      });
+      const notification = netopia.verifyNotification(req.body);
+      if (notification.success) {
+        // Process successful payment logic here (e.g., update order status)
+        res.json({ received: true });
+      } else {
+        res.status(400).json({ error: 'Payment verification failed' });
+      }
     } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  },
-
-  // Process refund
-  refund: async (req, res) => {
-    try {
-      const { paymentIntentId, amount } = req.body;
-      const refund = await paymentService.refundPayment(paymentIntentId, amount);
-
-      res.json({
-        success: true,
-        refund,
-      });
-    } catch (error) {
+      console.error('Notification error:', error);
       res.status(500).json({ error: error.message });
     }
   }

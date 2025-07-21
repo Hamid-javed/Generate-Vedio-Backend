@@ -2,16 +2,13 @@ const express = require("express");
 const router = express.Router();
 const scriptsController = require("../controllers/scriptsController");
 
-// Get all available script segments
-router.get("/segments", scriptsController.getSegments);
+// Get all available scripts
+router.get("/", scriptsController.getAll);
 
-// Get goodbye messages
-router.get("/goodbye", scriptsController.getGoodbyeMessages);
+// Get scripts by category
+router.get("/category/:category", scriptsController.getByCategory);
 
-// Create custom script from selected segments
-router.post("/create", scriptsController.create);
-
-// Get custom script by ID
-router.get("/custom/:scriptId", scriptsController.getCustomScript);
+// Get available categories
+router.get("/categories", scriptsController.getCategories);
 
 module.exports = router;
