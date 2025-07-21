@@ -47,6 +47,7 @@ const upload = multer({
   },
 });
 
+
 const videoGenerationController = {
   // Single endpoint to collect all user data and generate video
   createVideo: [
@@ -236,17 +237,17 @@ const videoGenerationController = {
         }
 
         // Send order confirmation email first
-        try {
-          await emailService.sendOrderConfirmationEmail({
-            recipientEmail: parentEmail,
-            childName: childName,
-            orderId: videoId,
-            template: template
-          });
-          console.log('✅ Order confirmation email sent');
-        } catch (emailError) {
-          console.warn('⚠️ Order confirmation email failed:', emailError.message);
-        }
+        // try {
+        //   await emailService.sendOrderConfirmationEmail({
+        //     recipientEmail: parentEmail,
+        //     childName: childName,
+        //     orderId: videoId,
+        //     template: template
+        //   });
+        //   console.log('✅ Order confirmation email sent');
+        // } catch (emailError) {
+        //   console.warn('⚠️ Order confirmation email failed:', emailError.message);
+        // }
 
         // Generate video using selected base video, audio, images, and subtitles
         await generateVideoWithFFmpeg({
@@ -353,6 +354,12 @@ const videoGenerationController = {
   ]
 };
 
+
+function ffmpegEscapePath(filePath) {
+  return `'${filePath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "'\\''")}'`;
+}
+
+
 // Helper function to generate video with FFmpeg
 async function generateVideoWithFFmpeg(options) {
   const {
@@ -364,97 +371,146 @@ async function generateVideoWithFFmpeg(options) {
     processedPhotos,
     letter,
     outputPath,
-    baseVideoPath, // new
-    audioPath // new
+    baseVideoPath,
+    audioPath
   } = options;
 
-  return new Promise((resolve, reject) => {
-    let command;
-    if (baseVideoPath) {
-      command = ffmpeg(baseVideoPath);
-    } else if (processedPhotos.length > 0) {
-      command = ffmpeg(processedPhotos[0].processed);
-    } else {
-      return reject(new Error('No base video or photo provided.'));
-    }
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
-    // Ensure output directory exists
-    const outputDir = path.dirname(outputPath);
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+  const tempDir = path.dirname(outputPath);
+  const concatVideoPath = path.join(tempDir, `${videoId}-concat.mp4`);
+  const introAudioPath = path.join(__dirname, `../uploads/audio/${childName}-intro.mp3`);
+  const mainAudioPath = audioPath;
+  const concatAudioPath = path.join(tempDir, `${videoId}-audio-concat.mp3`);
+  const subtitlesPath = path.join(tempDir, `${videoId}-subtitles.srt`);
 
-    // Add audio overlay if exists
-    if (fs.existsSync(audioPath)) {
-      command.input(audioPath);
-    }
+  // 1. Create video with image overlays
+  await new Promise((resolve, reject) => {
+    if (!processedPhotos.length) return reject(new Error('No processed photos for overlay.'));
 
-    // Add images as overlays (5s each)
-    processedPhotos.forEach((photo, idx) => {
-      command.input(photo.processed).inputOptions([
-        `-t 5` // 5 seconds per photo
-      ]);
+    const command = ffmpeg(baseVideoPath);
+
+    // Add each photo as an input
+    processedPhotos.forEach(photo => {
+      command.input(photo.processed);
     });
 
-    // Prepare subtitles from scripts
-    // For simplicity, concatenate all selectedScriptData texts
-    const subtitleText = selectedScriptData.map(s => s.text.replace('{{childName}}', childName)).join(' ');
-    // Write subtitles to a temporary file
-    const subtitlesPath = path.join(__dirname, `../uploads/videos/${videoId}-subtitles.srt`);
-    const srtContent = `1\n00:00:01,000 --> 00:00:10,000\n${subtitleText}\n`;
-    fs.writeFileSync(subtitlesPath, srtContent);
+    // Build complex filter for overlaying images
+    const filterComplex = [];
+    let lastOutput = '0:v'; // Start with base video
 
-    // FFmpeg filters
-    let filters = [
-      'scale=1920:1080:force_original_aspect_ratio=decrease',
-      'pad=1920:1080:(ow-iw)/2:(oh-ih)/2'
-      // subtitles filter temporarily removed for debugging
-      // `subtitles='${subtitlesPath.replace(/\\/g, "/")}'`
-    ];
+    processedPhotos.forEach((photo, idx) => {
+      const inputIndex = idx + 1; // +1 because base video is input 0
+      const outputLabel = `v${idx}`;
 
-    // Debug prints
-    console.log('FFmpeg outputPath:', outputPath);
-    console.log('FFmpeg subtitlesPath:', subtitlesPath);
-    console.log('FFmpeg outputDir exists:', fs.existsSync(path.dirname(outputPath)));
+      // Scale the image to a reasonable size (e.g., 300px width)
+      filterComplex.push(`[${inputIndex}:v]scale=300:-1[scaled${idx}]`);
 
+      // Overlay the scaled image on the previous output
+      // Position it in one of the corners based on index
+      let position;
+      switch (idx % 4) {
+        case 0: position = '10:10'; break; // Top left
+        case 1: position = 'W-w-10:10'; break; // Top right
+        case 2: position = '10:H-h-10'; break; // Bottom left
+        case 3: position = 'W-w-10:H-h-10'; break; // Bottom right
+      }
+
+      // Add overlay filter with timing (each image shows for 5 seconds)
+      filterComplex.push(
+        `[${lastOutput}][scaled${idx}]overlay=${position}:enable='between(t,${idx * 5},${(idx + 1) * 5})'[${outputLabel}]`
+      );
+
+      lastOutput = outputLabel;
+    });
+
+    // Add the complex filter to the command
     command
-      .videoFilters(filters)
+      .complexFilter(filterComplex, [lastOutput])
       .outputOptions([
-        '-c:v libx264',
-        '-preset medium',
-        '-crf 23',
-        '-pix_fmt yuv420p'
+        '-c:v', 'libx264',
+        '-preset', 'medium',
+        '-crf', '23',
+        '-pix_fmt', 'yuv420p'
       ])
-      .output(outputPath)
-      .on('start', (commandLine) => {
-        console.log('FFmpeg started:', commandLine);
-      })
-      .on('progress', (progress) => {
-        console.log('Processing: ' + progress.percent + '% done');
-      })
-      .on('end', () => {
-        // Clean up subtitle file
-        if (fs.existsSync(subtitlesPath)) fs.unlinkSync(subtitlesPath);
-        console.log('Video generation completed');
-        resolve();
-      })
+      .on('start', (cmd) => console.log('FFmpeg overlay command:', cmd))
       .on('error', (err) => {
-        if (fs.existsSync(subtitlesPath)) fs.unlinkSync(subtitlesPath);
-        console.error('FFmpeg error:', err);
+        console.error('FFmpeg overlay error:', err);
         reject(err);
       })
+      .on('end', resolve);
+
+    // Output to concat video path (we'll add audio and subtitles later)
+    command.output(concatVideoPath).run();
+  });
+
+  // 2. Concatenate intro audio and main audio
+  let audioConcatList = '';
+  if (fs.existsSync(introAudioPath)) {
+    audioConcatList += `file '${introAudioPath.replace(/\\/g, '/')}'\n`;
+  }
+  audioConcatList += `file '${mainAudioPath.replace(/\\/g, '/')}'\n`;
+  const audioListPath = path.join(tempDir, `${videoId}-audio-list.txt`);
+  fs.writeFileSync(audioListPath, audioConcatList);
+  await new Promise((resolve, reject) => {
+    ffmpeg()
+      .input(audioListPath)
+      .inputOptions(['-f', 'concat', '-safe', '0'])
+      .outputOptions(['-c', 'copy', '-y'])
+      .output(concatAudioPath)
+      .on('end', resolve)
+      .on('error', reject)
       .run();
+  });
+  fs.unlinkSync(audioListPath);
+
+  // 3. Generate subtitles SRT file from scripts
+  const allScripts = [...selectedScriptData];
+  if (goodbyeScriptData) allScripts.push(goodbyeScriptData);
+  let srtContent = '';
+  let currentTime = 0;
+  const scriptDuration = 4;
+  allScripts.forEach((script, idx) => {
+    const start = currentTime;
+    const end = currentTime + scriptDuration;
+    const text = script.text.replace(/\{\{childName\}\}/g, childName);
+    const formatTime = (s) => {
+      const h = String(Math.floor(s / 3600)).padStart(2, '0');
+      const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+      const sec = String(Math.floor(s % 60)).padStart(2, '0');
+      return `${h}:${m}:${sec},000`;
+    };
+    srtContent += `${idx + 1}\n${formatTime(start)} --> ${formatTime(end)}\n${text}\n\n`;
+    currentTime = end;
+  });
+  fs.writeFileSync(subtitlesPath, srtContent);
+
+  // 4. Combine video with audio and burn subtitles
+  await new Promise((resolve, reject) => {
+    ffmpeg(concatVideoPath)
+      .input(concatAudioPath)
+      .outputOptions([
+        '-map', '0:v:0',
+        '-map', '1:a:0',
+        '-c:v', 'libx264',
+        '-c:a', 'aac',
+        '-shortest',
+        '-y'
+      ])
+      .videoFilters([
+        `subtitles=${ffmpegEscapePath(subtitlesPath)}`
+      ])
+
+      .output(outputPath)
+      .on('end', resolve)
+      .on('error', reject)
+      .run();
+  });
+
+  // Clean up temp files
+  [concatVideoPath, concatAudioPath, subtitlesPath].forEach(f => {
+    if (fs.existsSync(f)) fs.unlinkSync(f);
   });
 }
 
 module.exports = videoGenerationController;
-
-// const { exec } = require('child_process');
-
-// exec('ffmpeg -version', (err, stdout, stderr) => {
-//   if (err) {
-//     console.error('FFmpeg not found:', err);
-//   } else {
-//     console.log(stdout);
-//   }
-// });
