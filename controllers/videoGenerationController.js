@@ -365,11 +365,9 @@ async function generateVideoWithFFmpeg(options) {
   const {
     videoId,
     childName,
-    template,
     selectedScriptData,
     goodbyeScriptData,
     processedPhotos,
-    letter,
     outputPath,
     baseVideoPath,
     audioPath

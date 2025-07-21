@@ -1,71 +1,148 @@
-# 🎅 Santa Video Generator API
+# 🎅 Santa Video Generator - Node.js Backend
 
-A streamlined Node.js backend for generating personalized Santa videos with ElevenLabs voice synthesis, FFmpeg video processing, and Netopia payment integration.
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-4.x-blue.svg)](https://expressjs.com/)
+[![FFmpeg](https://img.shields.io/badge/FFmpeg-Required-red.svg)](https://ffmpeg.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🚀 Features
+A comprehensive Node.js backend system for creating personalized Santa videos for children. This application provides a complete solution for photo upload, script customization, AI voice generation, video compilation, payment processing, and email delivery.
 
-- **Voice Generation**: Generate personalized Santa greetings using ElevenLabs API
-- **Template System**: Load video templates from JSON configuration
-- **Script Management**: Predefined Santa dialogue options with customization
-- **Video Generation**: Single endpoint to collect all user data and generate videos
-- **Payment Integration**: Netopia payment processing
-- **File Upload**: Handle photos (1-4) and optional Santa letters
+## 🎯 Project Overview
 
-## 📋 API Endpoints
+This backend powers a Santa video generation service that:
+- **Accepts child photos** (1-4 images) and optional Santa letters
+- **Generates personalized AI voiceovers** using ElevenLabs API
+- **Creates custom videos** with photo overlays, subtitles, and personalized messages
+- **Processes payments** through Netopia payment gateway
+- **Delivers videos** via email with cloud storage links
+- **Manages templates and scripts** for different video experiences
 
-### Voice Generation
-- `POST /api/voice/generate-name` - Generate voice for child's name using ElevenLabs
+## 🚀 Key Features
 
-### Templates
-- `GET /api/templates` - Get all available video templates
-- `GET /api/templates/:templateId` - Get specific template details
-- `GET /api/templates/search` - Filter templates with query parameters
-- `GET /api/templates/stats` - Get template statistics
+### Core Functionality
+- ✨ **AI Voice Generation**: ElevenLabs integration for personalized Santa greetings
+- 🎬 **Video Compilation**: FFmpeg-based video processing with photo overlays and subtitles
+- 📸 **Image Processing**: Sharp-based photo optimization and resizing
+- 🎭 **Template System**: Multiple Santa video templates with different themes
+- 📝 **Script Management**: Categorized script segments (Praise, Achievement, Kindness, etc.)
+- 💳 **Payment Integration**: Netopia payment processing
+- ☁️ **Cloud Storage**: AWS S3 and Cloudinary support for video delivery
+- 📧 **Email Service**: Automated email notifications with video download links
 
-### Scripts
-- `GET /api/scripts` - Get all available script segments
-- `GET /api/scripts/category/:category` - Get scripts by category
-- `GET /api/scripts/categories` - Get available categories
+### Technical Features
+- 🔒 **Input Validation**: Joi-based request validation
+- 🛡️ **File Security**: File type and size restrictions
+- 📊 **Progress Tracking**: Real-time video generation progress
+- 🔄 **Error Handling**: Comprehensive error management and logging
+- 🎯 **Single Endpoint**: Streamlined video creation API
 
-### Video Generation (Main Endpoint)
-- `POST /api/video/create` - Create personalized video with all user data
+## 🏗️ Architecture
 
-### Payment
-- `POST /api/payment/create` - Create Netopia payment request
-- `POST /api/payment/notification` - Handle payment notifications
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CLIENT (Frontend)                        │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ HTTP/REST API
+┌─────────────────────▼───────────────────────────────────────┐
+│                EXPRESS.JS SERVER                            │
+│  ┌─────────────┐ ┌──────────────┐ ┌─────────────────────┐    │
+│  │   Routes    │ │ Controllers  │ │   Middleware        │    │
+│  │             │ │              │ │   (Multer, CORS)    │    │
+│  └─────────────┘ └──────────────┘ └─────────────────────┘    │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────┐
+│                   SERVICES LAYER                           │
+│  ┌─────────────┐ ┌──────────────┐ ┌─────────────────────┐    │
+│  │   Voice     │ │    Video     │ │      Email          │    │
+│  │  Service    │ │   Service    │ │    Service          │    │
+│  │(ElevenLabs) │ │  (FFmpeg)    │ │  (Nodemailer)       │    │
+│  └─────────────┘ └──────────────┘ └─────────────────────┘    │
+│  ┌─────────────┐ ┌──────────────┐ ┌─────────────────────┐    │
+│  │   Upload    │ │   Payment    │ │  Cloud Storage      │    │
+│  │  Service    │ │   Service    │ │    Service          │    │
+│  │  (Sharp)    │ │ (Netopia)    │ │ (AWS S3/Cloudinary) │    │
+│  └─────────────┘ └──────────────┘ └─────────────────────┘    │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────┐
+│                   DATA LAYER                               │
+│  ┌─────────────┐ ┌──────────────┐ ┌─────────────────────┐    │
+│  │   JSON      │ │  File System │ │   External APIs     │    │
+│  │ Templates   │ │   (Uploads)  │ │ (ElevenLabs, Cloud) │    │
+│  │ & Scripts   │ │              │ │                     │    │
+│  └─────────────┘ └──────────────┘ └─────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### Health Check
-- `GET /health` - Server health status
+## 📁 Project Structure
 
-## 🛠 Setup & Installation
+```
+santa-video-nodejs-backend/
+├── index.js                     # Main server entry point
+├── package.json                 # Dependencies and scripts
+├── README.md                   # This file
+├──
+├── controllers/                 # Request handlers
+│   ├── videoGenerationController.js  # Main video creation logic
+│   ├── paymentController.js          # Netopia payment handling
+│   ├── voiceController.js            # ElevenLabs voice generation
+│   ├── templatesController.js        # Template management
+│   ├── scriptsController.js          # Script management
+│   └── uploadController.js           # File upload handling
+├──
+├── services/                    # Business logic layer
+│   ├── voiceService.js              # ElevenLabs API integration
+│   ├── videoService.js              # FFmpeg video processing
+│   ├── emailService.js              # Nodemailer email service
+│   ├── cloudStorageService.js       # AWS S3/Cloudinary integration
+│   ├── templateService.js           # Template management
+│   └── uploadService.js             # File processing (Sharp)
+├──
+├── routes/                      # API route definitions
+│   ├── video-generation.js          # Main video creation endpoint
+│   ├── payment.js                   # Payment processing routes
+│   ├── voice.js                     # Voice generation routes
+│   ├── templates.js                 # Template CRUD routes
+│   └── scripts.js                   # Script management routes
+├──
+├── models/                      # Data models (if using database)
+│   ├── Order.js                     # Order management
+│   ├── Video.js                     # Video metadata
+│   ├── Template.js                  # Template definitions
+│   ├── Script.js                    # Script segments
+│   └── Upload.js                    # Upload metadata
+├──
+├── data/                        # Static data files
+│   ├── templates.json               # Video template definitions
+│   ├── scripts.json                 # Script segments and categories
+│   └── video/                       # Base video files
+│       └── video1.mp4               # Sample base video
+├──
+├── config/                      # Configuration files
+│   └── multerConfig.js              # File upload configuration
+├──
+├── uploads/                     # File storage directories
+│   ├── photos/                      # Uploaded child photos
+│   ├── audio/                       # Generated voice files
+│   ├── videos/                      # Final compiled videos
+│   └── letters/                     # Santa letters (optional)
+├──
+├── assets/                      # Static assets
+│   └── santa.png                    # Santa image assets
+└──
+└── utils/                       # Utility functions
+    └── templateLoader.js            # Template loading utilities
+```
+
+## 🔧 Setup & Installation
 
 ### Prerequisites
-- Node.js (v16+)
-- FFmpeg installed and accessible
-- ElevenLabs API key
-- Netopia payment credentials
-
-### Installation
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Copy environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-4. Configure your `.env` file with:
-   - ElevenLabs API key and voice ID
-   - Netopia payment credentials
-   - Other configuration options
-
-5. Start the server:
-   ```bash
-   npm start
-   # or for development
-   npm run dev
-   ```
+- **Node.js** (v16 or higher)
+- **FFmpeg** installed and accessible in PATH
+- **ElevenLabs API key** (for voice generation)
+- **Netopia credentials** (for payment processing)
+- **Email service** (Gmail/SMTP for notifications)
 
 ## 📝 API Usage Examples
 
