@@ -67,7 +67,8 @@ const uploadController = {
             fileType: "photo",
             metadata: photoData.metadata,
             processed: true,
-            processedPath: photoData.processedPath
+            processedPath: photoData.processedPath,
+            storage_type: 'local'
           });
           await uploadRecord.save();
           return {

@@ -7,7 +7,9 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "aws-sdk": "latest",
     "axios": "latest",
+    "cloudinary": "^2.7.0",
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
@@ -19,9 +21,7 @@
     "nodemailer": "latest",
     "sharp": "latest",
     "stripe": "latest",
-    "uuid": "latest",
-    "aws-sdk": "latest",
-    "cloudinary": "latest"
+    "uuid": "latest"
   },
   "devDependencies": {
     "nodemon": "latest"

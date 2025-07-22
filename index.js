@@ -2,6 +2,19 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
+const mongoose = require('mongoose');
+
+// Connect to MongoDB
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/santa-video';
+mongoose.connect(mongoUri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,22 +31,20 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Import routes
 const templateRoutes = require('./routes/templates');
-const voiceRoutes = require('./routes/voice');
 const scriptRoutes = require('./routes/scripts');
 const paymentRoutes = require('./routes/payment');
-const videoGenerationRoutes = require('./routes/video-generation');
+const videoGenerationRoutes = require('./routes/generation');
 
 // Routes
 app.use('/api/templates', templateRoutes);
-app.use('/api/voice', voiceRoutes);
 app.use('/api/scripts', scriptRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/video', videoGenerationRoutes);
+app.use('/api', videoGenerationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     message: '🎅 Santa Video Backend is running!'
   });

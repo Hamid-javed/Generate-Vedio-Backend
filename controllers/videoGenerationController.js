@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const sharp = require('sharp');
 const cloudStorageService = require('../services/cloudStorageService');
-const emailService = require('../services/emailService');
+const Order = require('../models/Order');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -236,20 +236,6 @@ const videoGenerationController = {
           fs.mkdirSync(videoDir, { recursive: true });
         }
 
-        // Send order confirmation email first
-        // try {
-        //   await emailService.sendOrderConfirmationEmail({
-        //     recipientEmail: parentEmail,
-        //     childName: childName,
-        //     orderId: videoId,
-        //     template: template
-        //   });
-        //   console.log('✅ Order confirmation email sent');
-        // } catch (emailError) {
-        //   console.warn('⚠️ Order confirmation email failed:', emailError.message);
-        // }
-
-        // Generate video using selected base video, audio, images, and subtitles
         await generateVideoWithFFmpeg({
           videoId,
           childName,
@@ -281,22 +267,7 @@ const videoGenerationController = {
           cloudVideoUrl = `/uploads/videos/video-${videoId}.mp4`;
         }
 
-        // Send video ready email with cloud link
-        try {
-          console.log('📧 Sending video ready email...');
-          await emailService.sendVideoReadyEmail({
-            recipientEmail: parentEmail,
-            childName: childName,
-            videoUrl: cloudVideoUrl,
-            videoId: videoId,
-            template: template,
-            selectedScripts: selectedScriptData
-          });
-          console.log('✅ Video ready email sent successfully');
-        } catch (emailError) {
-          console.error('❌ Video ready email failed:', emailError.message);
-          // Continue anyway - video is still generated
-        }
+
 
         // Clean up processed photos
         try {
@@ -313,13 +284,39 @@ const videoGenerationController = {
           console.warn('⚠️ File cleanup warning:', cleanupError.message);
         }
 
-        // Return success response
+        const order = await Order.create({
+          videoId: videoId,
+          videoUrl: cloudVideoUrl,
+          childName: childName,
+          parentEmail: parentEmail,
+          template: {
+            id: template.id,
+            name: template.name
+          },
+          scripts: selectedScriptData.map(s => ({
+            id: s.id,
+            category: s.category,
+            text: s.text.replace('{{childName}}', childName)
+          })),
+          goodbyeScript: goodbyeScriptData ? {
+            id: goodbyeScriptData.id,
+            text: goodbyeScriptData.text.replace('{{childName}}', childName)
+          } : null,
+          photos: processedPhotos.length,
+          hasLetter: !!letter,
+          emailSent: true,
+          cloudStored: cloudVideoUrl.startsWith('https://'),
+          createdAt: new Date().toISOString()
+        })
+
+        order.save()
+
         res.json({
           success: true,
           message: "Video generated and sent to email successfully!",
           data: {
             videoId: videoId,
-            videoUrl: cloudVideoUrl, // Return cloud URL
+            videoUrl: cloudVideoUrl,
             childName: childName,
             parentEmail: parentEmail,
             template: {
@@ -338,7 +335,7 @@ const videoGenerationController = {
             photos: processedPhotos.length,
             hasLetter: !!letter,
             emailSent: true,
-            cloudStored: !cloudVideoUrl.startsWith('/uploads'),
+            cloudStored: cloudVideoUrl.startsWith('https://'),
             createdAt: new Date().toISOString()
           }
         });
@@ -360,7 +357,6 @@ function ffmpegEscapePath(filePath) {
 }
 
 
-// Helper function to generate video with FFmpeg
 async function generateVideoWithFFmpeg(options) {
   const {
     videoId,
@@ -382,39 +378,32 @@ async function generateVideoWithFFmpeg(options) {
   const concatAudioPath = path.join(tempDir, `${videoId}-audio-concat.mp3`);
   const subtitlesPath = path.join(tempDir, `${videoId}-subtitles.srt`);
 
-  // 1. Create video with image overlays
   await new Promise((resolve, reject) => {
     if (!processedPhotos.length) return reject(new Error('No processed photos for overlay.'));
 
     const command = ffmpeg(baseVideoPath);
 
-    // Add each photo as an input
     processedPhotos.forEach(photo => {
       command.input(photo.processed);
     });
 
-    // Build complex filter for overlaying images
     const filterComplex = [];
-    let lastOutput = '0:v'; // Start with base video
+    let lastOutput = '0:v';
 
     processedPhotos.forEach((photo, idx) => {
-      const inputIndex = idx + 1; // +1 because base video is input 0
+      const inputIndex = idx + 1;
       const outputLabel = `v${idx}`;
 
-      // Scale the image to a reasonable size (e.g., 300px width)
       filterComplex.push(`[${inputIndex}:v]scale=300:-1[scaled${idx}]`);
 
-      // Overlay the scaled image on the previous output
-      // Position it in one of the corners based on index
       let position;
       switch (idx % 4) {
-        case 0: position = '10:10'; break; // Top left
-        case 1: position = 'W-w-10:10'; break; // Top right
-        case 2: position = '10:H-h-10'; break; // Bottom left
-        case 3: position = 'W-w-10:H-h-10'; break; // Bottom right
+        case 0: position = '10:10'; break;
+        case 1: position = 'W-w-10:10'; break;
+        case 2: position = '10:H-h-10'; break;
+        case 3: position = 'W-w-10:H-h-10'; break;
       }
 
-      // Add overlay filter with timing (each image shows for 5 seconds)
       filterComplex.push(
         `[${lastOutput}][scaled${idx}]overlay=${position}:enable='between(t,${idx * 5},${(idx + 1) * 5})'[${outputLabel}]`
       );
@@ -422,7 +411,6 @@ async function generateVideoWithFFmpeg(options) {
       lastOutput = outputLabel;
     });
 
-    // Add the complex filter to the command
     command
       .complexFilter(filterComplex, [lastOutput])
       .outputOptions([
@@ -438,11 +426,9 @@ async function generateVideoWithFFmpeg(options) {
       })
       .on('end', resolve);
 
-    // Output to concat video path (we'll add audio and subtitles later)
     command.output(concatVideoPath).run();
   });
 
-  // 2. Concatenate intro audio and main audio
   let audioConcatList = '';
   if (fs.existsSync(introAudioPath)) {
     audioConcatList += `file '${introAudioPath.replace(/\\/g, '/')}'\n`;
@@ -462,7 +448,6 @@ async function generateVideoWithFFmpeg(options) {
   });
   fs.unlinkSync(audioListPath);
 
-  // 3. Generate subtitles SRT file from scripts
   const allScripts = [...selectedScriptData];
   if (goodbyeScriptData) allScripts.push(goodbyeScriptData);
   let srtContent = '';
@@ -483,7 +468,6 @@ async function generateVideoWithFFmpeg(options) {
   });
   fs.writeFileSync(subtitlesPath, srtContent);
 
-  // 4. Combine video with audio and burn subtitles
   await new Promise((resolve, reject) => {
     ffmpeg(concatVideoPath)
       .input(concatAudioPath)
@@ -505,7 +489,6 @@ async function generateVideoWithFFmpeg(options) {
       .run();
   });
 
-  // Clean up temp files
   [concatVideoPath, concatAudioPath, subtitlesPath].forEach(f => {
     if (fs.existsSync(f)) fs.unlinkSync(f);
   });

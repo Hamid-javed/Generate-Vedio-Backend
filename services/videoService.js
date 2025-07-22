@@ -1,10 +1,11 @@
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs').promises;
-const { v4: uuidv4 } = require('uuid');
 const Order = require('../models/Order');
 const Template = require('../models/Template');
 const emailService = require('./emailService');
+
+const cloudinaryService = require('./cloudinaryService');
 
 class VideoService {
   constructor() {
@@ -17,7 +18,7 @@ class VideoService {
       // Update order status
       await Order.findOneAndUpdate(
         { orderId },
-        { 
+        {
           status: 'processing',
           progress: 0
         }
@@ -37,17 +38,30 @@ class VideoService {
       // Generate video using FFmpeg
       await this.compileVideo(orderData, outputPath);
 
-      // Update order with completion
+      // Upload video to Cloudinary
+      const cloudinaryResult = await cloudinaryService.uploadVideo(outputPath, {
+        public_id: `videos/${orderId}`,
+        folder: 'santa-videos'
+      });
+
+      // Update order with Cloudinary URL and completion
       await Order.findOneAndUpdate(
         { orderId },
-        { 
+        {
           status: 'completed',
           progress: 100,
-          videoPath: outputPath,
-          downloadUrl: `/api/video/download/${orderId}`,
+          videoPath: cloudinaryResult.secure_url,
+          downloadUrl: cloudinaryResult.secure_url,
           completedAt: new Date()
         }
       );
+
+      // Clean up local file
+      try {
+        fs.unlinkSync(outputPath);
+      } catch (err) {
+        console.warn('Could not delete local video file:', err);
+      }
 
       // Send email with download link
       await emailService.sendVideoReadyEmail(orderData.email, orderId);
@@ -55,16 +69,16 @@ class VideoService {
       return { success: true, orderId };
     } catch (error) {
       console.error('Video generation error:', error);
-      
+
       // Update order with error
       await Order.findOneAndUpdate(
         { orderId },
-        { 
+        {
           status: 'failed',
           errorMessage: error.message
         }
       );
-      
+
       throw error;
     }
   }
@@ -97,37 +111,37 @@ class VideoService {
           photos.forEach((photo, index) => {
             if (photo.processedPath) {
               const photoPath = path.join(__dirname, '..', photo.processedPath);
-command = command.input(photoPath);
+              command = command.input(photoPath);
 
-// Apply zoom and crop, if specified
-if (photo.editSettings) {
-  const { crop, zoom, rotation, brightness, contrast } = photo.editSettings;
-  let photoInput = `scale=iw*${zoom}:ih*${zoom}`;
+              // Apply zoom and crop, if specified
+              if (photo.editSettings) {
+                const { crop, zoom, rotation, brightness, contrast } = photo.editSettings;
+                let photoInput = `scale=iw*${zoom}:ih*${zoom}`;
 
-  // Apply cropping
-  if (crop && crop.width && crop.height) {
-    photoInput += `,crop=${crop.width}:${crop.height}:${crop.x}:${crop.y}`;
-  }
-  
-  // Apply rotation
-  if (rotation) {
-    photoInput += `,rotate=${rotation}`;
-  }
+                // Apply cropping
+                if (crop && crop.width && crop.height) {
+                  photoInput += `,crop=${crop.width}:${crop.height}:${crop.x}:${crop.y}`;
+                }
 
-  // Apply brightness
-  if (brightness) {
-    photoInput += `,eq=brightness=${brightness}`;
-  }
+                // Apply rotation
+                if (rotation) {
+                  photoInput += `,rotate=${rotation}`;
+                }
 
-  // Apply contrast
-  if (contrast) {
-    photoInput += `,eq=contrast=${contrast}`;
-  }
+                // Apply brightness
+                if (brightness) {
+                  photoInput += `,eq=brightness=${brightness}`;
+                }
 
-  filterComplex.push(`[${inputIndex}:v]${photoInput}[photo${index}]`);
-} else {
-  filterComplex.push(`[${inputIndex}:v]scale=iw"iw*zoom"[photo${index}]`);
-}
+                // Apply contrast
+                if (contrast) {
+                  photoInput += `,eq=contrast=${contrast}`;
+                }
+
+                filterComplex.push(`[${inputIndex}:v]${photoInput}[photo${index}]`);
+              } else {
+                filterComplex.push(`[${inputIndex}:v]scale=iw"iw*zoom"[photo${index}]`);
+              }
             }
           });
         }
@@ -141,7 +155,7 @@ if (photo.editSettings) {
           photos.forEach((photo, index) => {
             const inputIndex = index + (voiceSettings?.voiceoverPath ? 2 : 1);
             const outputStream = `[photo${index}]`;
-            
+
             // Scale and overlay photo
             filterComplex.push(
               `[${inputIndex}:v]scale=300:400[scaled${index}]`
@@ -149,14 +163,14 @@ if (photo.editSettings) {
             filterComplex.push(
               `${videoStream}[scaled${index}]overlay=100:100:enable='between(t,10,30)'${outputStream}`
             );
-            
+
             videoStream = outputStream;
           });
         }
 
-// Add text overlay for child's name
-const nameOverlayDetails = template.nameOverlay;
-filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf:fontsize=${nameOverlayDetails.fontSize}:fontcolor=${nameOverlayDetails.fontColor}:x=${nameOverlayDetails.x}:y=${nameOverlayDetails.y}:enable='between(t,${nameOverlayDetails.startTime},${nameOverlayDetails.endTime})'`);
+        // Add text overlay for child's name
+        const nameOverlayDetails = template.nameOverlay;
+        filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf:fontsize=${nameOverlayDetails.fontSize}:fontcolor=${nameOverlayDetails.fontColor}:x=${nameOverlayDetails.x}:y=${nameOverlayDetails.y}:enable='between(t,${nameOverlayDetails.startTime},${nameOverlayDetails.endTime})'`);
 
         command
           .complexFilter(filterComplex)
@@ -208,7 +222,7 @@ filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf
       const order = await Order.findOne({ orderId })
         .populate('templateId')
         .populate('photos.uploadId');
-      
+
       if (!order) {
         return { status: 'not_found' };
       }
@@ -254,7 +268,7 @@ filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf
       // Reset order status
       await Order.findOneAndUpdate(
         { orderId },
-        { 
+        {
           status: 'created',
           progress: 0,
           errorMessage: null,
@@ -263,9 +277,9 @@ filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf
       );
 
       const order = await Order.findOne({ orderId });
-      return this.generateVideo({ 
-        orderId, 
-        paymentIntentId: order.paymentIntentId 
+      return this.generateVideo({
+        orderId,
+        paymentIntentId: order.paymentIntentId
       });
     } catch (error) {
       console.error('Error regenerating video:', error);
@@ -279,7 +293,7 @@ filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf
         .populate('templateId')
         .populate('photos.uploadId')
         .populate('customScript.scriptId');
-      
+
       return order;
     } catch (error) {
       console.error('Error getting order data:', error);
@@ -290,14 +304,14 @@ filterComplex.push(`drawtext=text='${childName}':fontfile=/path/to/your/font.ttf
   async createMockVideo(orderId) {
     try {
       const outputPath = path.join(this.outputDir, `${orderId}.mp4`);
-      
+
       // Ensure directory exists
       await fs.mkdir(this.outputDir, { recursive: true });
-      
+
       // Create a small mock video file for development
       const mockVideoBuffer = Buffer.alloc(1024 * 100, 0); // 100KB mock file
       await fs.writeFile(outputPath, mockVideoBuffer);
-      
+
       return outputPath;
     } catch (error) {
       console.error('Error creating mock video:', error);

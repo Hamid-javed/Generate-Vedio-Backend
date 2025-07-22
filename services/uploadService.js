@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const Upload = require('../models/Upload');
 
 class UploadService {
-  async processPhotos(files) {
+  async processPhotosForVideo(files) {
     const processedPhotos = [];
 
     for (const file of files) {
@@ -14,7 +14,7 @@ class UploadService {
         const originalPath = file.path;
         const processedPath = path.join(path.dirname(originalPath), `processed-${photoId}.jpg`);
 
-        // Process image with Sharp
+        // Process image with Sharp for video use
         await sharp(originalPath)
           .resize(1920, 1080, {
             fit: 'inside',
@@ -26,11 +26,11 @@ class UploadService {
         const photoData = {
           id: photoId,
           originalName: file.originalname,
-          originalPath: `/uploads/photos/${path.basename(originalPath)}`,
-          processedPath: `/uploads/photos/${path.basename(processedPath)}`,
+          originalPath: originalPath,
+          processedPath: processedPath,
           size: file.size,
           mimetype: file.mimetype,
-          metadata: await this.getImageMetadata(processedPath),
+          metadata: await this.getImageMetadata(processedPath)
         };
 
         processedPhotos.push(photoData);
@@ -41,6 +41,26 @@ class UploadService {
     }
 
     return processedPhotos;
+  }
+
+  async cleanupPhotos(photos) {
+    for (const photo of photos) {
+      try {
+        // Delete original uploaded file
+        if (photo.originalPath && require('fs').existsSync(photo.originalPath)) {
+          require('fs').unlinkSync(photo.originalPath);
+          console.log(`🗑️ Deleted original photo: ${photo.originalPath}`);
+        }
+        
+        // Delete processed file
+        if (photo.processedPath && require('fs').existsSync(photo.processedPath)) {
+          require('fs').unlinkSync(photo.processedPath);
+          console.log(`🗑️ Deleted processed photo: ${photo.processedPath}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Could not delete photo files for ${photo.originalName}:`, error.message);
+      }
+    }
   }
 
   async processLetter(file) {

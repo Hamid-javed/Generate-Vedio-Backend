@@ -71,9 +71,6 @@ class EmailService {
       // Send email
       const result = await this.transporter.sendMail(mailOptions);
 
-      console.log(`✅ Video ready email sent to: ${recipientEmail}`);
-      console.log(`📧 Message ID: ${result.messageId}`);
-
       return {
         success: true,
         messageId: result.messageId,
