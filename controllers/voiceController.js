@@ -19,12 +19,12 @@ const voiceController = {
       }
 
       // Validate name length
-      // if (name.length > 50) {
-      //   return res.status(400).json({
-      //     error: "Name too long",
-      //     message: "Name must be 50 characters or less"
-      //   });
-      // }
+      if (name.length > 50) {
+        return res.status(400).json({
+          error: "Name too long",
+          message: "Name must be 50 characters or less"
+        });
+      }
 
       // Create a simple greeting with the name
       const greeting = `Ho ho ho! Hello ${name}!`;

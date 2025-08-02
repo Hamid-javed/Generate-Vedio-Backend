@@ -4,7 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "aws-sdk": "latest",
@@ -20,10 +23,11 @@
     "netopia-card": "^2.1.2",
     "nodemailer": "latest",
     "sharp": "latest",
-    "stripe": "latest",
     "uuid": "latest"
   },
   "devDependencies": {
-    "nodemon": "latest"
+    "jest": "^30.0.5",
+    "nodemon": "latest",
+    "supertest": "^7.1.3"
   }
 }

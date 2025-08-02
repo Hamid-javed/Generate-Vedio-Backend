@@ -1,4 +1,3 @@
-const { string } = require('joi');
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
@@ -58,6 +57,33 @@ const orderSchema = new mongoose.Schema({
   cloudStored: {
     type: Boolean,
     default: false
+  },
+  payment: {
+    status: {
+      type: String,
+      enum: ['pending', 'confirmed', 'cancelled', 'failed', 'refunded'],
+      default: 'pending'
+    },
+    provider: {
+      type: String,
+      default: 'netopia'
+    },
+    transactionId: {
+      type: String,
+      default: null
+    },
+    amount: {
+      type: Number,
+      default: null
+    },
+    currency: {
+      type: String,
+      default: 'RON'
+    },
+    paidAt: {
+      type: Date,
+      default: null
+    }
   },
   createdAt: {
     type: Date,

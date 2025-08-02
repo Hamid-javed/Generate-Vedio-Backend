@@ -58,6 +58,11 @@ app.use((error, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Santa Video Node.js Backend running on port ${PORT}`);
-});
+// Only start the server if this file is run directly
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Santa Video Node.js Backend running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

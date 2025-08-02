@@ -315,6 +315,7 @@ const videoGenerationController = {
           success: true,
           message: "Video generated and sent to email successfully!",
           data: {
+            orderId: order._id,
             videoId: videoId,
             videoUrl: cloudVideoUrl,
             childName: childName,
